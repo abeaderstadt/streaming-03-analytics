@@ -280,7 +280,7 @@ def process_message(
     LOG.info(f"subtotal={enriched['subtotal']}")
     LOG.info(f"tax={enriched['tax_amount']}")
     LOG.info(f"total={enriched['total']}")
-    LOG.info(f"high_value_order={enriched.get('high_value_order')}")
+    LOG.info(f"order_tier={enriched['order_tier']}")
     LOG.info(f"running_total={stats.total + enriched['total']:.2f}")
 
     # Update running statistics with the new total.

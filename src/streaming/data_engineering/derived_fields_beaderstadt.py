@@ -105,13 +105,23 @@ def enrich_message(
     tax_amount = compute_tax_amount(total_price, tax_rate)
 
     total = round(total_price + tax_amount, 2)
-    high_value_order = total >= 500
+
+    # =========================
+    # NEW: ORDER TIER LOGIC
+    # =========================
+    if total >= 50:
+        order_tier = "high"
+    elif total >= 30:
+        order_tier = "medium"
+    else:
+        order_tier = "low"
+
     return {
         **row,
         "subtotal": total_price,
         "tax_amount": tax_amount,
         "total": total,
-        "high_value_order": high_value_order,
+        "order_tier": order_tier,
     }
 
 
