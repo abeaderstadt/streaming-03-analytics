@@ -25,8 +25,8 @@ to get these projects running on your machine.
 
 The Kafka producer uses the original sales.csv dataset,
 which simulates real time retail transactions.
-Each record represents a customer purchase with details like order info,
-timestamp, region, product, pricing, and payment details.
+Each record represents a customer purchase with order details,
+timestamps, region, product info, pricing, and payment methods.
 
 Fields include:
 
@@ -46,82 +46,78 @@ Fields include:
 - discount_code
 - customer_note
 
-For validation and enrichment, reference tables are used:
+Reference tables used for validation and enrichment:
 
 - valid_region_ids (regions table)
 - valid_product_ids (products table)
 
 ### Data Contract
 
-The data contract defines the rules that every message has to
-follow before it can move through the pipeline. It helps make sure the
-data is valid and safe to process downstream.
+The data contract defines the rules each message must follow before
+entering the pipeline. It ensures data is valid and safe to process downstream.
 
 **Required fields:**
 Core fields like order_id, datetime, region_id, currency_code, product_id,
-unit_price, quantity, is_online, customer_id, and payment_method must be present.
-If any are missing, the message is rejected.
+unit_price, quantity, is_online, customer_id, and payment_method must be present
+or the message is rejected.
 
 **Optional fields:**
 Fields like is_new_customer, device_type, referral_source,
-discount_code, and customer_note can be included but are not required.
+discount_code, and customer_note are allowed but not required.
 
 **Validation rules:**
 
 - device_type must be mobile, desktop, or tablet
-- payment_method must match allowed values (e.g., credit_card, paypal)
-- referral_source must be from the approved list
+- payment_method must be from allowed values (credit_card, paypal, etc.)
+- referral_source must match approved sources
 - currency_code must be USD, CAD, or MXN
 - region_id and product_id must exist in reference tables
 - unit_price must be numeric, non negative, and within allowed bounds
 
-A message is valid only if it passes all required checks. Otherwise,
-it’s rejected before enrichment or analytics.
+A message is valid only if all rules pass.
+Otherwise, it is rejected before enrichment or analytics.
 
 ### Kafka Messages
 
-The producer sends each sales transaction as a Kafka message.
-Each message represents a single order.
+The producer sends each sales transaction as a Kafka
+message representing a single order.
 
-The Kafka topic is:
+Kafka topic:
 streaming-03-analytics-beaderstadt
 
-The message key is region_id, which keeps messages from the same
-region grouped together in the same partition for better ordering and consistency.
+The message key is region_id, which keeps messages grouped by
+region in the same partition for consistency.
 
-I didn’t change the overall structure of the messages, but I did extend
-how they are processed downstream in the consumer. The raw message is enriched
-with calculated fields like subtotal, tax_amount, and total.
+The message structure stays the same, but the consumer enriches
+it with calculated fields like subtotal, tax_amount, and total.
 
-In Phase 4, I added a high_value_order flag for large transactions.
-In Phase 5, I replaced it with an order_tier field to categorize orders as low,
-medium, or high for better segmentation.
+In Phase 4, I added a high_value_order flag. In Phase 5, I
+replaced it with order_tier to better sort orders as low, medium, or high.
 
 ### Consumer Validation
 
-Each message is validated before processing. The consumer first checks
-required fields, then runs deeper validation like numeric checks and allowed value rules.
+Each message is validated before processing. Required fields are
+checked first, followed by numeric and value-based validation rules.
 
-Valid messages move forward into enrichment and are included in analytics.
+Valid messages continue into enrichment and analytics.
 
-Invalid messages are rejected immediately. Errors are logged (for example:
-Unit price cannot be negative: -10.00) and skipped so they
-don’t affect downstream calculations.
+Invalid messages are rejected immediately, and errors are logged
+(e.g., Unit price cannot be negative: -10.00) so they don’t affect
+downstream results.
 
-This keeps the pipeline clean and prevents bad data from impacting results.
+This keeps the pipeline clean and prevents bad data from impacting analytics.
 
 ### Data Engineering and Enrichment
 
-After validation, the consumer enriches each message by adding calculated fields:
+After validation, each message is enriched with calculated fields:
 
 - subtotal = quantity × unit_price
 - tax_amount = based on region tax rate lookup
 - total = subtotal + tax
 - order_tier = low, medium, or high based on total
+Region reference data is used to apply tax rates.
 
-The enrichment step also uses region reference data to apply tax rates.
-
-This turns raw transactions into more useful business-ready
+This transforms raw transactions into structured business-ready
 data with financial totals and simple classification.
 
 ### Streaming Analytics
@@ -133,21 +129,20 @@ The pipeline updates running statistics in real time:
 - minimum order value
 - maximum order value
 
-Each new valid message updates these values immediately,
+Each new valid message updates these immediately,
 giving a live view of performance.
 
-For example, high-value orders push the average and max upward,
-while smaller orders balance it out. This makes trends visible
-instantly instead of waiting for batch reports.
+High-value orders push averages and max values up,
+while smaller orders balance them out, making trends visible as they happen.
 
 ### Experiments
 
 Phase 4:
-I added a validate_unit_price function to catch issues like negative
-or unrealistic prices earlier in the pipeline.
+I added a validate_unit_price function to catch invalid values
+like negative pricing earlier in the pipeline.
 
-I also introduced a high_value_order flag using a
-threshold of 500 to identify large transactions.
+I also added a high_value_order flag using a 500 threshold
+to identify large transactions.
 
 Phase 5:
 I replaced that logic with an order_tier field:
@@ -161,7 +156,7 @@ I replaced that logic with an order_tier field:
         order_tier = "low"
 ```
 
-This made it easier to segment orders in real time instead of
+This made it easier to sort orders in real time instead of
 just flagging the highest of them.
 
 ### Results
@@ -173,25 +168,37 @@ consuming messages as expected.
 - Messages consumed: yes
 - Messages accepted: 9 valid messages in phase 5
 - Messages rejected: 1 (unit_price = -10.00)
-- Output: limited visible CSV output due to filtering, but full logs
-captured in run_output.txt (Phase 4) and run_output_phase5.txt (Phase 5)
+- Output: limited CSV output, but full logs saved in
+run_output.txt (Phase 4) and run_output_phase5.txt (Phase 5)
 
-The validation logic worked as expected.
-Invalid data was caught early and excluded from analytics.
+Validation worked as expected, and bad data was caught early.
 
-In Phase 5, the enriched data showed order segmentation results:
-5 messages were classified as high and 4 as medium based on order_tier.
-This directly supports a new business question around how orders are
-distributed by value tier, rather than only tracking total revenue.
+In Phase 5, order segmentation results showed:
+5 high orders and 4 medium orders based on order_tier.
+This answers a new business question about how order values
+are distributed, not just total revenue.
 
 ### Interpretation
 
-This project showed how important early validation is in a streaming pipeline.
-Stronger rules helped prevent bad data from affecting downstream analytics.
+This project really showed how important early validation is in
+a streaming pipeline. It kept bad data from slipping through and
+affecting downstream analytics.
 
-Enrichment also added a lot of value. Calculated fields like totals and
-order tiers made the data easier to interpret without extra processing.
+Enrichment made the data more useful by turning raw transactions
+into meaningful fields like total and order_tier, so insights are easier
+to get without extra processing.
 
-Finally, the running statistics demonstrated how streaming data behaves in real time.
-Each new event immediately changes the overall picture, which is useful for tracking
-revenue trends and spotting abnormalities as they happen.
+Running statistics were especially interesting because they update
+in real time, giving an immediate view of how each new message
+changes the overall picture.
+
+To test everything, I modified a sample record with a unit_price of -10.00.
+When I ran the pipeline, my validation rule triggered Unit price cannot be
+negative: -10.00, and the record was stopped before enrichment.
+
+I also confirmed the high_value_order logic appears correctly in logs
+for valid messages. Since everything runs in the terminal, I saved output
+to run_output.txt so I could include it in my GitHub submission.
+
+Overall, the pipeline behaved as expected and confirmed that validation,
+enrichment, and streaming analytics are all working together correctly.
