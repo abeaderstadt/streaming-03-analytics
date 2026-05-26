@@ -241,6 +241,76 @@ to delete the topic and recreate it.
 - Many files are silent helpers. Explore as you like, but nothing is required.
 - You do NOT not to understand everything; understanding builds naturally over time.
 
+## My Project Modifications
+
+To make this project my own, I customized the following files in the Kafka pipeline.
+I added a new function in to improve the validation layer for the streaming pipeline,
+and created two new derived fields early in the pipeline.
+
+- derived_fields_beaderstadt.py
+
+- data_contract_beaderstadt.py
+
+- data_validation_beaderstadt.py
+
+- kafka_admin_beaderstadt.py
+
+- kafka_consumer_beaderstadt.py
+
+- kafka_producer_beaderstadt.py
+
+### Phase 4: Make a Technical Modification
+
+1. I added a custom validate_unit_price function in data_validation_beaderstadt.py
+ to improve the validation layer for the streaming pipeline. This helps catch issues
+ like negative prices or unrealistic values before they move further through the system.
+
+2. I also updated derived_fields_beaderstadt.py by adding a high_value_order
+  flag using total >= 500, which basically labels larger transactions so they’re
+  easier to identify later in the pipeline.
+
+### Phase 4: Observations
+
+1. The pipeline starting to reject bad data earlier instead of letting it flow through.
+2. When a message had a negative unit price, it got flagged during
+  validation and didn’t continue into enrichment.
+   - I changed one of the sample records to have a unit_price of -10.00.
+   - When I ran the producer and consumer, I could actually see my
+  custom rule kick in and return:
+   - Unit price cannot be negative: -10.00, which stopped that record
+  from going any further.
+3. For valid messages, everything still worked normally. Subtotal, tax,
+  total, and the new high value flag all showed up in the consumer logs.
+4. I also confirmed that the high_value_order field is working because
+  it shows up in the logs for normal messages.
+
+### Phase 5: Apply the Skills to a New Problem
+
+1. I replaced the high_value_order flag logic with an order_tier field:
+
+```bash
+    if total >= 50:
+        order_tier = "high"
+    elif total >= 30:
+        order_tier = "medium"
+    else:
+        order_tier = "low"
+```
+
+### Phase 5: Observations
+
+1. This made it easier to sort orders in real time instead of just
+  flagging the highest of them.
+2. The pipeline ran successfully with Kafka producing and
+  consuming messages as expected.
+3. Messages accepted: 9 valid messages in phase 5
+4. Messages rejected: 1 (unit_price = -10.00)
+5. Output: limited CSV output, but full logs saved in run_output.txt
+  (Phase 4) and run_output_phase5.txt (Phase 5)
+6. In Phase 5, order segmentation results showed: 5 high orders and 4 medium
+  orders based on order_tier. This answers a new business question about
+  how order values are distributed, not just total revenue.
+
 ## Troubleshooting >>> or
 
 If you see something like this in your terminal: `>>>` or `...`
