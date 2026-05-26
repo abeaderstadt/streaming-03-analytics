@@ -179,6 +179,11 @@ captured in run_output.txt (Phase 4) and run_output_phase5.txt (Phase 5)
 The validation logic worked as expected.
 Invalid data was caught early and excluded from analytics.
 
+In Phase 5, the enriched data showed order segmentation results:
+5 messages were classified as high and 4 as medium based on order_tier.
+This directly supports a new business question around how orders are
+distributed by value tier, rather than only tracking total revenue.
+
 ### Interpretation
 
 This project showed how important early validation is in a streaming pipeline.
