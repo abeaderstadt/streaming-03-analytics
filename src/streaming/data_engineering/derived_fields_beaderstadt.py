@@ -105,11 +105,13 @@ def enrich_message(
     tax_amount = compute_tax_amount(total_price, tax_rate)
 
     total = round(total_price + tax_amount, 2)
+    high_value_order = total >= 500
     return {
         **row,
         "subtotal": total_price,
         "tax_amount": tax_amount,
         "total": total,
+        "high_value_order": high_value_order,
     }
 
 

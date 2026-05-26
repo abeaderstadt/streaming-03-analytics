@@ -45,11 +45,15 @@ from datafun_toolkit.logger import get_logger, log_header, log_path
 from dotenv import load_dotenv
 
 from streaming.core.utils import log_env_vars
-from streaming.data_engineering.derived_fields import enrich_message
-from streaming.data_validation.data_contract_case import (
+from streaming.data_engineering.derived_fields_beaderstadt import enrich_message
+from streaming.data_validation.data_contract_beaderstadt import (
     CONSUMED_FIELDNAMES,
     SALES_REQUIRED_FIELDS,
     validate_required_fields,
+)
+from streaming.data_validation.data_validation_beaderstadt import (
+    validate_quantity,
+    validate_unit_price,
 )
 
 # === CONFIGURE LOGGER ===
@@ -73,7 +77,7 @@ ROOT_DIR: Final[Path] = Path.cwd()
 DATA_DIR: Final[Path] = ROOT_DIR / "data"
 OUTPUT_DIR: Final[Path] = DATA_DIR / "output"
 
-OUTPUT_CSV: Final[Path] = OUTPUT_DIR / "consumed_sales.csv"
+OUTPUT_CSV: Final[Path] = OUTPUT_DIR / "consumed_sales_beaderstadt.csv"
 
 REGIONS_CSV: Final[Path] = DATA_DIR / "regions.csv"
 PRODUCTS_CSV: Final[Path] = DATA_DIR / "products.csv"
@@ -261,6 +265,11 @@ def process_message(
     # First, validate the message against the data contract.
     # If validation fails, return None to indicate the message should be rejected.
     errors = validate_required_fields(record=row, required_fields=SALES_REQUIRED_FIELDS)
+
+    # Run custom validation rules
+    errors.extend(validate_quantity(row["quantity"]))
+    errors.extend(validate_unit_price(row["unit_price"]))
+
     if errors:
         LOG.warning(f"Validation failed for order {row.get('order_id', '?')}")
         LOG.warning(f"errors={errors}")
@@ -271,6 +280,7 @@ def process_message(
     LOG.info(f"subtotal={enriched['subtotal']}")
     LOG.info(f"tax={enriched['tax_amount']}")
     LOG.info(f"total={enriched['total']}")
+    LOG.info(f"high_value_order={enriched.get('high_value_order')}")
     LOG.info(f"running_total={stats.total + enriched['total']:.2f}")
 
     # Update running statistics with the new total.

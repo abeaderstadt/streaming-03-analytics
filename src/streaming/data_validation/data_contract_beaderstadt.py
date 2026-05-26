@@ -20,8 +20,12 @@ from datafun_streaming.data_validation.types import ValidationResult
 from datafun_streaming.data_validation.validation_utils import (
     validate_boolean_text,
     validate_datetime,
-    validate_positive_integer,
     validate_required_fields,
+)
+
+from streaming.data_validation.data_validation_beaderstadt import (
+    validate_quantity,
+    validate_unit_price,
 )
 
 # === DECLARE REQUIRED FIELDS ===
@@ -220,7 +224,9 @@ def validate_sale_record(
 
     errors.extend(validate_datetime(record["datetime"]))
 
-    errors.extend(validate_positive_integer(record["quantity"]))
+    errors.extend(validate_quantity(record["quantity"]))
+
+    errors.extend(validate_unit_price(record["unit_price"]))
 
     errors.extend(validate_boolean_text(record["is_online"], field_name="is_online"))
 

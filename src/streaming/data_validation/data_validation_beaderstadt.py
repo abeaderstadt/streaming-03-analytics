@@ -27,6 +27,7 @@ __all__ = [
     "make_lookup_set",
     "validate_quantity",
     "validate_reference_records",
+    "validate_unit_price",
 ]
 
 
@@ -51,5 +52,24 @@ def validate_quantity(value: str) -> list[str]:
 
     if quantity < 1:
         return [f"Quantity must be at least 1: {value}"]
+
+    return []
+
+
+# === CUSTOM UNIT PRICE VALIDATOR ===
+
+
+def validate_unit_price(value: str) -> list[str]:
+    """Return errors for an invalid unit price value."""
+    try:
+        price = float(value)
+    except ValueError:
+        return [f"Unit price must be numeric: {value}"]
+
+    if price < 0:
+        return [f"Unit price cannot be negative: {value}"]
+
+    if price > 100000:
+        return [f"Unit price exceeds expected maximum: {value}"]
 
     return []
