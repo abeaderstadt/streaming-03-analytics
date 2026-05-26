@@ -197,8 +197,9 @@ When I ran the pipeline, my validation rule triggered Unit price cannot be
 negative: -10.00, and the record was stopped before enrichment.
 
 I also confirmed the high_value_order logic appears correctly in logs
-for valid messages. Since everything runs in the terminal, I saved output
-to run_output.txt so I could include it in my GitHub submission.
+for valid messages. Since everything runs in the terminal, I saved Phase 4 output
+to run_output.txt and Phase 5 to run_output_phase5.txt
+so I could include it in my GitHub submission.
 
 Overall, the pipeline behaved as expected and confirmed that validation,
 enrichment, and streaming analytics are all working together correctly.
